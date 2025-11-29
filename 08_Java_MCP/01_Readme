@@ -1,0 +1,79 @@
+# Projekt: Predykcja cen BTC i ETH (Python)
+
+Opis projektu: Celem tego projektu jest zbudowanie reproducowalnego pipeline'u w Pythonie do predykcji krótkoterminowych zmian cen Bitcoin (BTC) i Ethereum (ETH) przy użyciu wskaźników technicznych. Projekt zawiera pobieranie danych, inżynierię cech (technical indicators), trenowanie modeli (statystycznych i uczenia maszynowego), ewaluację oraz prosty skrypt/serwis do predykcji.
+
+Główne założenia:
+- Dane historyczne: kursy OHLCV (open, high, low, close, volume) pobierane z API (np. Binance, CCXT, yfinance) lub z plików CSV.
+- Cechy: popularne wskaźniki techniczne (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, OBV itp.).
+- Modele: klasyczne (RandomForest, XGBoost/LightGBM) oraz modele sekwencyjne (LSTM) jako opcjonalne rozszerzenie.
+- Ewaluacja: metryki regresji (MAE, RMSE), metryki tradingowe (skumulowany zwrot, Sharpe ratio) oraz testy walk-forward/backtesting.
+
+Funkcjonalności:
+- Pobieranie i czyszczenie danych historycznych.
+- Generowanie wskaźników technicznych i normalizacja cech.
+- Trenowanie i zapisywanie modelu oraz pipeline'u preprocessingu.
+- Skrypty do generowania prognoz i oceny wyników.
+- Przykładowe notatniki (Jupyter) ilustrujące eksperymenty i wizualizacje.
+
+Wskaźniki techniczne używane w projekcie (przykładowo):
+- SMA (Simple Moving Average), EMA (Exponential Moving Average)
+- RSI (Relative Strength Index)
+- MACD (Moving Average Convergence Divergence)
+- Bollinger Bands
+- ATR (Average True Range)
+- Stochastic Oscillator
+- OBV (On-Balance Volume)
+
+Struktura projektu (proponowana):
+- `data/` - surowe i przetworzone pliki CSV
+- `notebooks/` - eksperymenty i analizy w Jupyter Notebook
+- `src/` - kod źródłowy (pobieranie danych, cechy, modele)
+  - `src/data.py` - pobieranie i wczytywanie danych
+  - `src/features.py` - obliczanie wskaźników technicznych
+  - `src/train.py` - skrypty treningowe
+  - `src/predict.py` - skrypt do predykcji/serwisu
+- `models/` - zapisane modele i artefakty (pickle, joblib)
+- `requirements.txt` - zależności Pythona
+- `README.md` / `01_Readme` - opis projektu
+
+Instalacja i uruchomienie (przykład):
+1. Utwórz virtualenv i aktywuj:
+	- Windows PowerShell:
+	  ```powershell
+	  python -m venv .venv; .\.venv\Scripts\Activate.ps1
+	  ```
+2. Zainstaluj zależności:
+	```powershell
+	pip install -r requirements.txt
+	```
+3. Pobierz dane (przykładowy skrypt):
+	```powershell
+	python src/data.py --symbol BTCUSDT --start 2020-01-01 --end 2025-01-01
+	```
+4. Wylicz wskaźniki i wytrenuj model:
+	```powershell
+	python src/train.py --config config.yml
+	```
+5. Wykonaj predykcję:
+	```powershell
+	python src/predict.py --model models/best_model.pkl --symbol BTCUSDT
+	```
+
+Uwagi praktyczne i dobre praktyki:
+- Rozdziel dane treningowe i testowe według czasu (no shuffle) — używaj walk-forward validation.
+- Nie wyrywaj decyzji tradingowych bez osobnego backtestu — metryki regresji nie zawsze przekładają się na zyski.
+- Loguj eksperymenty (np. MLflow, Weights & Biases) i zapisuj seed dla powtarzalności.
+- Normalizuj/skaluj cechy według rozkładu treningowego i zapisuj scaler w artefaktach.
+
+Możliwe rozszerzenia:
+- Dodanie sygnałów opartych na order book (głębokość rynku) lub on-chain metrics.
+- Ensemble modeli i optymalizacja hiperparametrów (Optuna).
+- Serwis REST do udostępniania prognoz (FastAPI).
+
+Kontakt / Licencja:
+ - W razie pytań lub chęci rozszerzenia projektu skontaktuj się z autorem.
+ - Projekt można rozpowszechniać zgodnie z wybraną licencją (np. MIT).
+
+---
+Ten opis jest propozycją zawartości; chcesz, żebym zapisał go w `README.md` zamiast w `01_Readme`, dodał przykładowy `requirements.txt` czy przygotował szablon `src/train.py`?
+
