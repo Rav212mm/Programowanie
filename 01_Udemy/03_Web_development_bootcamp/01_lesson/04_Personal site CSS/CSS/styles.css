@@ -1,0 +1,27 @@
+body {
+    background-color: rgb(131, 73, 73);
+
+}
+
+hr {
+    background-color: whitesmoke;
+    border-style: dotted none none none;
+    border-color: grey;
+    border-width: 3px;
+    size: 10;
+    height: 0px;
+    width: 5%;
+}
+
+img {
+    height: 150px;
+    background-color: blue;
+}
+
+h1 {
+    color: #66bfbf;
+  }
+
+h3 {
+    color: #66bfbf;
+}
