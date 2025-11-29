@@ -1,0 +1,59 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+def login_to_bingel():
+    """
+    Skrypt logujący się na stronę www.bingel.be
+    """
+    # Inicjalizacja przeglądarki
+    driver = webdriver.Chrome()
+    
+    try:
+        # Przejście na stronę
+        print("Przechodzę na www.bingel.be...")
+        driver.get("https://www.bingel.be")
+        
+        time.sleep(2)
+        
+        # Kliknij w przycisk "uczeń" (pupil-login-button)
+        try:
+            student_button = driver.find_element(By.ID, "pupil-login-button")
+            print("Znaleziono przycisk 'Leerling', klikam...")
+            student_button.click()
+            time.sleep(3)
+            print("Kliknięty przycisk 'Leerling'!")
+        except Exception as e:
+            print(f"Nie znaleziono przycisku: {e}")
+        
+        # Szukanie i uzupełnianie pola #mat-input-0
+        try:
+            # Szuka pola input o ID "mat-input-0"
+            name_input = driver.find_element(By.ID, "mat-input-0")
+            print("Znaleziono pole, uzupełniam powoli...")
+            
+            # Uzupełniaj powoli, znak po znaku
+            text = "jurek"
+            for char in text:
+                name_input.send_keys(char)
+                time.sleep(0.2)  # Delay między znakami
+            
+            print(f"Pole uzupełnione wyrazem: {text}")
+            time.sleep(2)
+        except Exception as e:
+            print(f"Nie znaleziono pola: {e}")
+        
+        # Czekaj aby zobaczyć wynik
+        time.sleep(5)
+        
+    except Exception as e:
+        print(f"Błąd: {e}")
+    
+    finally:
+        # Zamknięcie przeglądarki
+        driver.quit()
+
+if __name__ == "__main__":
+    login_to_bingel()
