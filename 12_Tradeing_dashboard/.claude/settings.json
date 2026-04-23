@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&sparkline=true&price_change_percentage=24h&per_page=3&page=1\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\\\\\"{c['id']}: \\\\${c['current_price']:,.2f}  {c['price_change_percentage_24h']:+.2f}%  sparkline_pts={len\\(c.get\\('sparkline_in_7d',{}\\).get\\('price',[]\\)\\)}\\\\\"\\) for c in d]\")",
+      "Bash(curl -s \"https://api.bybit.com/v5/market/tickers?category=spot\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); tickers=d['result']['list']; sol=[t for t in tickers if t['symbol']=='SOLUSDT']; print\\('Bybit SOL:', sol[0]['lastPrice'] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://www.okx.com/api/v5/market/tickers?instType=SPOT\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); tickers=d['data']; sol=[t for t in tickers if t['instId']=='SOL-USDT']; print\\('OKX SOL:', sol[0]['last'] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api.coincap.io/v2/assets?limit=50\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); sol=[a for a in d['data'] if a['symbol']=='SOL']; print\\('CoinCap SOL:', sol[0]['priceUsd'][:8] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api.kucoin.com/api/v1/market/allTickers\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); tickers=d['data']['ticker']; sol=[t for t in tickers if t['symbol']=='SOL-USDT']; print\\('KuCoin SOL:', sol[0]['last'] if sol else 'NOT FOUND'\\)\")",
+      "Bash(wait)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); sol=[a for a in d['data'] if a['symbol']=='SOL']; print\\('CoinCap SOL:', sol[0]['priceUsd'][:10] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api.gateio.ws/api/v4/spot/tickers\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); sol=[t for t in d if t['currency_pair']=='SOL_USDT']; print\\('Gate.io SOL:', sol[0]['last'] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api.mexc.com/api/v3/ticker/24hr\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); sol=[t for t in d if t['symbol']=='SOLUSDT']; print\\('MEXC SOL:', sol[0]['lastPrice'] if sol else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api-pub.bitfinex.com/v2/tickers?symbols=tSOLUSD\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Bitfinex SOL:', d[0][7] if d else 'NOT FOUND'\\)\")",
+      "Bash(curl -s \"https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22SOLUSDT%22%5D\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Binance SOL:', d[0]['lastPrice']\\)\")",
+      "Bash(curl -s -H \"Accept: application/json\" \"https://api.coincap.io/v2/assets?limit=10\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('CoinCap OK, first:', d['data'][0]['symbol'], d['data'][0]['priceUsd'][:8]\\)\")"
+    ]
+  }
+}
