@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazy Księżyca - Aktualna Faza</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* --- Animowane gwiazdy w tle --- */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        /* --- Główny kontener --- */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* --- Sekcja aktualnej fazy --- */
+        .current-phase-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .current-phase-title {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Wizualizacja księżyca SVG --- */
+        .moon-visual-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 2rem;
+        }
+
+        .moon-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 30px rgba(253, 250, 229, 0.3));
+        }
+
+        .moon-glow-circle {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(253, 250, 229, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+        }
+
+        .phase-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fdfae5, #f0e68c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .phase-subtitle {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- Karty z informacjami --- */
+        .info-cards {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            max-width: 700px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            min-width: 150px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .info-card-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .info-card-unit {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 0.25rem;
+        }
+
+        /* --- Pasek postępu cyklu --- */
+        .cycle-progress-container {
+            max-width: 500px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        .cycle-progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .cycle-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cycle-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fdfae5, #f0e68c);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .cycle-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* --- Odliczanie --- */
+        .countdown-section {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .countdown-item {
+            text-align: center;
+        }
+
+        .countdown-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.3rem;
+        }
+
+        .countdown-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f0e68c;
+        }
+
+        /* --- Przyciski nawigacji --- */
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-moon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-moon:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-moon-primary {
+            background: linear-gradient(135deg, rgba(100, 149, 237, 0.3), rgba(147, 112, 219, 0.3));
+            border-color: rgba(100, 149, 237, 0.4);
+        }
+
+        /* --- Input daty --- */
+        .date-picker-section {
+            margin-top: 1.5rem;
+        }
+
+        .date-input-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        #datePicker {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        #datePicker:focus {
+            outline: none;
+            border-color: rgba(100, 149, 237, 0.5);
+            box-shadow: 0 0 10px rgba(100, 149, 237, 0.2);
+        }
+
+        #datePicker::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        .btn-today {
+            background: rgba(100, 149, 237, 0.2);
+            border: 1px solid rgba(100, 149, 237, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .btn-today:hover {
+            background: rgba(100, 149, 237, 0.4);
+        }
+
+        /* --- Animacja wejścia --- */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+        .fade-in-up:nth-child(2) { animation-delay: 0.3s; }
+        .fade-in-up:nth-child(3) { animation-delay: 0.5s; }
+        .fade-in-up:nth-child(4) { animation-delay: 0.7s; }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Responsywność --- */
+        @media (max-width: 768px) {
+            .phase-name { font-size: 1.8rem; }
+            .info-cards { gap: 1rem; }
+            .info-card { min-width: 120px; padding: 1rem; }
+            .info-card-value { font-size: 1.4rem; }
+            .countdown-section { gap: 1rem; }
+            .moon-visual-container { width: 200px; height: 200px; }
+            .moon-glow-circle { width: 240px; height: 240px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Animowane gwiazdy -->
+<div class="stars" id="stars"></div>
+
+<div class="main-container">
+    <!-- Sekcja aktualnej fazy -->
+    <div class="current-phase-section fade-in-up">
+        <div class="current-phase-title">Aktualna faza księżyca</div>
+
+        <div class="moon-visual-container">
+            <div class="moon-glow-circle" id="moonGlow"></div>
+            <svg class="moon-svg" id="moonSvg" viewBox="0 0 200 200">
+                <!-- Ciemna podstawa księżyca -->
+                <circle cx="100" cy="100" r="80" fill="#1a1a2e" />
+                <!-- Oświetlona część (SVG clip path) -->
+                <defs>
+                    <clipPath id="moonClip">
+                        <rect id="clipRect" x="100" y="20" width="80" height="160" rx="0" ry="0"/>
+                    </clipPath>
+                </defs>
+                <circle id="litPart" cx="100" cy="100" r="80" fill="#fdfae5" clip-path="url(#moonClip)"
+                        style="filter: url(#moonTexture);"/>
+                <!-- Tekstura kraterów (subtelna) -->
+                <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="40"/>
+                <!-- Obramowanie -->
+                <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            </svg>
+        </div>
+
+        <h1 class="phase-name" id="phaseName">Ładowanie...</h1>
+        <p class="phase-subtitle" id="phaseSubtitle">Sprawdzam aktualną fazę księżyca</p>
+    </div>
+
+    <!-- Karty z informacjami -->
+    <div class="info-cards fade-in-up">
+        <div class="info-card">
+            <div class="info-card-label">Oświetlenie</div>
+            <div class="info-card-value" id="illuminationValue">--%</div>
+        </div>
+        <div class="info-card">
+            <div class="info-card-label">Wiek księżyca</div>
+            <div class="info-card-value" id="moonAgeValue">--</div>
+            <div class="info-card-unit">dni</div>
+        </div>
+        <div class="info-card">
+            <div class="info-card-label">Odległość</div>
+            <div class="info-card-value" id="distanceValue">--</div>
+            <div class="info-card-unit">tys. km</div>
+        </div>
+    </div>
+
+    <!-- Pasek postępu cyklu -->
+    <div class="cycle-progress-container fade-in-up">
+        <div class="cycle-progress-label">
+            <span>Nowiu</span>
+            <span id="cyclePercent">0%</span>
+            <span>Pełni</span>
+        </div>
+        <div class="cycle-progress-bar">
+            <div class="cycle-progress-fill" id="cycleFill" style="width: 0%"></div>
+        </div>
+        <div class="cycle-markers">
+            <span>Nów</span>
+            <span>I Kwadra</span>
+            <span>Pełnia</span>
+            <span>IV Kwadra</span>
+            <span>Nów</span>
+        </div>
+    </div>
+
+    <!-- Odliczanie -->
+    <div class="countdown-section fade-in-up">
+        <div class="countdown-item">
+            <div class="countdown-label" id="nextFullLabel">Do pełni</div>
+            <div class="countdown-value" id="daysToFullMoon">--</div>
+        </div>
+        <div class="countdown-item">
+            <div class="countdown-label" id="nextNewLabel">Do nowiu</div>
+            <div class="countdown-value" id="daysToNewMoon">--</div>
+        </div>
+    </div>
+
+    <!-- Przyciski nawigacji -->
+    <div class="nav-buttons fade-in-up">
+        <a href="/fullmoons" class="btn-moon btn-moon-primary">🌕 Kalendarz pełni</a>
+    </div>
+
+    <!-- Wybór daty -->
+    <div class="date-picker-section fade-in-up">
+        <div class="date-input-wrapper">
+            <input type="date" id="datePicker">
+            <button class="btn-today" onclick="goToToday()">Dzisiaj</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === Generowanie gwiazd w tle ===
+    function createStars() {
+        const starsContainer = document.getElementById('stars');
+        const count = 150;
+        for (let i = 0; i < count; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 2.5 + 0.5;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.setProperty('--duration', (Math.random() * 4 + 2) + 's');
+            star.style.animationDelay = Math.random() * 5 + 's';
+            starsContainer.appendChild(star);
+        }
+    }
+    createStars();
+
+    // === Aktualizacja wizualizacji księżyca (SVG) ===
+    function updateMoonVisual(illumination, cyclePosition) {
+        const clipRect = document.getElementById('clipRect');
+        const moonGlow = document.getElementById('moonGlow');
+
+        // Pozycja w cyklu: 0-0.5 = rosnący, 0.5-1.0 = malejący
+        let left, width;
+
+        if (cyclePosition <= 0.5) {
+            // Faza rosnąca (od prawej strony)
+            width = Math.abs(cyclePosition * 2) * 80;
+            left = 100 - width;
+        } else {
+            // Faza malejąca (do prawej strony)
+            width = Math.abs((1 - cyclePosition) * 2) * 80;
+            left = 100;
+        }
+
+        clipRect.setAttribute('x', left);
+        clipRect.setAttribute('width', width);
+
+        // Glow
+        const glowScale = 1 + (illumination * 0.3);
+        const glowOpacity = 0.15 + (illumination * 0.35);
+        moonGlow.style.transform = `translate(-50%, -50%) scale(${glowScale})`;
+        moonGlow.style.background = `radial-gradient(circle, rgba(253, 250, 229, ${glowOpacity}) 0%, transparent 70%)`;
+    }
+
+    // === Aktualizacja UI ===
+    function updateUI(phaseData) {
+        if (!phaseData) return;
+
+        const { phaseName, illumination, moonAge, distance, cycleProgress } = phaseData;
+
+        document.getElementById('phaseName').textContent = phaseName;
+        document.getElementById('illuminationValue').textContent = Math.round(illumination * 100) + '%';
+        document.getElementById('moonAgeValue').textContent = moonAge.toFixed(1);
+        document.getElementById('distanceValue').textContent = (distance / 1000).toFixed(1);
+        document.getElementById('cyclePercent').textContent = Math.round(cycleProgress * 100) + '%';
+        document.getElementById('cycleFill').style.width = (cycleProgress * 100) + '%';
+
+        // Podtytuł z informacją o cyklu
+        const cycleDesc = illumination < 0.1 ? 'Księżyc jest prawie niewidoczny' :
+                         illumination > 0.9 ? 'Księżyc jest w pełni jasności' :
+                         cycleProgress < 0.5 ? 'Faza rosnąca' : 'Faza malejąca';
+        document.getElementById('phaseSubtitle').textContent = cycleDesc;
+
+        // Aktualizacja wizualizacji
+        updateMoonVisual(illumination, cycleProgress);
+    }
+
+    // === Pobieranie danych z API ===
+    async function fetchPhaseData(dateStr) {
+        try {
+            const response = await fetch(`/api/moon-info?date=${dateStr}`);
+            const data = await response.json();
+
+            updateUI({
+                phaseName: data.phase.phaseName,
+                illumination: data.phase.illumination,
+                moonAge: data.moonAgeDays,
+                distance: data.phase.distanceKm,
+                cycleProgress: data.cycleProgress
+            });
+
+            // Odliczanie
+            document.getElementById('daysToFullMoon').textContent =
+                data.daysToFullMoon > 0 ? data.daysToFullMoon + ' dni' : '--';
+            document.getElementById('daysToNewMoon').textContent =
+                data.daysToNewMoon > 0 ? data.daysToNewMoon + ' dni' : '--';
+
+        } catch (error) {
+            console.error('Błąd pobierania danych:', error);
+            document.getElementById('phaseName').textContent = 'Błąd';
+        }
+    }
+
+    // === Nawigacja ===
+    function goToToday() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('datePicker').value = today;
+        fetchPhaseData(today);
+    }
+
+    // === Inicjalizacja ===
+    window.onload = () => {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('datePicker').value = today;
+        fetchPhaseData(today);
+
+        document.getElementById('datePicker').addEventListener('change', (e) => {
+            fetchPhaseData(e.target.value);
+        });
+    };
+</script>
+
+</body>
+</html>

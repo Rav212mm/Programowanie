@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalendarz Księżyca - <span th:text="${year}"></span></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* --- Animowane gwiazdy w tle --- */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        /* --- Główny kontener --- */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* --- Nagłówek --- */
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fdfae5, #f0e68c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: rgba(255,255,255,0.5);
+            font-size: 1rem;
+        }
+
+        /* --- Nawigacja roku --- */
+        .year-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .year-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .year-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .year-display {
+            font-size: 2rem;
+            font-weight: 700;
+            min-width: 80px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 0.3rem 1.5rem;
+        }
+
+        /* --- Kalendarz --- */
+        .calendar-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .month-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .month-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .month-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .month-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        /* --- Siatka kalendarza --- */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .day-header {
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 50px;
+        }
+
+        .day-cell:not(.empty):hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .day-cell.selected {
+            background: rgba(100, 149, 237, 0.25);
+            border: 1px solid rgba(100, 149, 237, 0.5);
+        }
+
+        .day-cell.has-event {
+            background: rgba(253, 250, 229, 0.08);
+        }
+
+        .day-number {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .day-mini-moon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-top: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Mini księżyc - fazy --- */
+        .mini-moon-new {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .mini-moon-waxing-crescent, .mini-moon-waning-crescent {
+            background: linear-gradient(to right, #1a1a2e 50%, #fdfae5 50%);
+        }
+
+        .mini-moon-first-quarter, .mini-moon-last-quarter {
+            background: linear-gradient(to right, #fdfae5 50%, #1a1a2e 50%);
+        }
+
+        .mini-moon-waxing-gibbous {
+            background: #fdfae5;
+            border: 1px solid rgba(26,26,46,0.3);
+        }
+
+        .mini-moon-full {
+            background: #fdfae5;
+            border: 2px solid #f0e68c;
+            box-shadow: 0 0 8px rgba(253, 250, 229, 0.4);
+        }
+
+        .mini-moon-waning-gibbous {
+            background: #fdfae5;
+            border: 1px solid rgba(26,26,46,0.3);
+        }
+
+        /* --- Panel szczegółów --- */
+        .detail-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        .detail-moon-visual {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .detail-moon-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 20px rgba(253, 250, 229, 0.3));
+        }
+
+        .detail-phase-name {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fdfae5, #f0e68c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .detail-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+        }
+
+        .detail-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.3rem;
+        }
+
+        .detail-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* --- Lista zdarzeń --- */
+        .events-section {
+            margin-top: 2rem;
+        }
+
+        .events-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .event-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s;
+        }
+
+        .event-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .event-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .event-icon.full-moon {
+            background: #fdfae5;
+            border: 2px solid #f0e68c;
+            box-shadow: 0 0 8px rgba(253, 250, 229, 0.3);
+        }
+
+        .event-icon.new-moon {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .event-date {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .event-type {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* --- Animacja wejścia --- */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Responsywność --- */
+        @media (max-width: 768px) {
+            .page-title { font-size: 1.8rem; }
+            .calendar-grid { gap: 2px; }
+            .day-cell { min-height: 40px; border-radius: 8px; }
+            .day-number { font-size: 0.75rem; }
+            .day-mini-moon { width: 12px; height: 12px; }
+            .detail-info { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* --- Link powrotny --- */
+        .back-link {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Animowane gwiazdy -->
+<div class="stars" id="stars"></div>
+
+<a href="/" class="back-link">← Strona główna</a>
+
+<div class="main-container fade-in-up">
+    <!-- Nagłówek -->
+    <div class="page-header">
+        <h1 class="page-title">🌙 Kalendarz Księżyca</h1>
+        <p class="page-subtitle">Interaktywny kalendarz faz księżyca na rok <span th:text="${year}"></span></p>
+    </div>
+
+    <!-- Nawigacja roku -->
+    <div class="year-nav">
+        <button class="year-btn" onclick="changeYear(-1)">◀</button>
+        <div class="year-display" id="yearDisplay" th:text="${year}"></div>
+        <button class="year-btn" onclick="changeYear(1)">▶</button>
+    </div>
+
+    <!-- Kalendarz -->
+    <div class="calendar-container">
+        <!-- Nawigacja miesiąca -->
+        <div class="month-nav">
+            <button class="month-btn" onclick="changeMonth(-1)">◀</button>
+            <div class="month-title" id="monthTitle"></div>
+            <button class="month-btn" onclick="changeMonth(1)">▶</button>
+        </div>
+
+        <!-- Siatka kalendarza -->
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- Generowane przez JavaScript -->
+        </div>
+    </div>
+
+    <!-- Panel szczegółów -->
+    <div class="detail-panel fade-in-up" id="detailPanel">
+        <div class="detail-moon-visual">
+            <svg class="detail-moon-svg" id="detailMoonSvg" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="80" fill="#1a1a2e" />
+                <defs>
+                    <clipPath id="detailClip">
+                        <rect id="detailClipRect" x="100" y="20" width="80" height="160"/>
+                    </clipPath>
+                </defs>
+                <circle cx="100" cy="100" r="80" fill="#fdfae5" clip-path="url(#detailClip)"/>
+                <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            </svg>
+        </div>
+
+        <h2 class="detail-phase-name" id="detailPhaseName">Wybierz dzień</h2>
+        <p style="text-align: center; color: rgba(255,255,255,0.5);" id="detailDateText"></p>
+
+        <div class="detail-info">
+            <div class="detail-item">
+                <div class="detail-label">Oświetlenie</div>
+                <div class="detail-value" id="detailIllumination">--%</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">Wiek księżyca</div>
+                <div class="detail-value" id="detailMoonAge">-- dni</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">Odległość</div>
+                <div class="detail-value" id="detailDistance">-- tys. km</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">Cykl postępu</div>
+                <div class="detail-value" id="detailCycleProgress">--%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista kluczowych zdarzeń -->
+    <div class="events-section fade-in-up">
+        <h3 class="events-title">Kluczowe wydarzenia w roku</h3>
+        <div class="events-grid" id="eventsGrid">
+            <!-- Generowane przez Thymeleaf -->
+            <div th:each="event : ${events}" class="event-card">
+                <div class="event-icon" th:classappend="${event.type.name() == 'FULL_MOON'} ? 'full-moon' : 'new-moon'"></div>
+                <div>
+                    <div class="event-date" th:text="${#temporals.format(event.date, 'dd MMMM yyyy')}"></div>
+                    <div class="event-type" th:text="${event.type.name() == 'FULL_MOON'} ? 'Pełnia' : 'Nów'"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === Konfiguracja ===
+    const YEAR = /*[[${year}]]*/ 2024;
+    const MONTHS_PL = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+                       'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+    const DAYS_PL = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+
+    let currentYear = YEAR;
+    let currentMonth = new Date().getMonth(); // 0-11
+    if (currentMonth === 0) currentMonth = new Date().getMonth(); // domyślnie bieżący
+
+    // Fazy księżyca dla danego roku - pobierane z backendu
+    let phasesData = [];
+
+    // Kluczowe wydarzenia (nowie i pełnie)
+    const events = /*[[${events}]]*/ [];
+
+    // === Generowanie gwiazd ===
+    function createStars() {
+        const starsContainer = document.getElementById('stars');
+        const count = 120;
+        for (let i = 0; i < count; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 2.5 + 0.5;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.setProperty('--duration', (Math.random() * 4 + 2) + 's');
+            star.style.animationDelay = Math.random() * 5 + 's';
+            starsContainer.appendChild(star);
+        }
+    }
+    createStars();
+
+    // === Pobieranie faz z API ===
+    async function loadPhases(year) {
+        try {
+            const response = await fetch(`/api/phases/year/${year}`);
+            phasesData = await response.json();
+        } catch (error) {
+            console.error('Błąd pobierania faz:', error);
+            phasesData = [];
+        }
+    }
+
+    // === Pobieranie informacji o danej dacie ===
+    async function fetchDayInfo(dateStr) {
+        try {
+            const response = await fetch(`/api/moon-info?date=${dateStr}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Błąd:', error);
+            return null;
+        }
+    }
+
+    // === Renderowanie kalendarza ===
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        const monthTitle = document.getElementById('monthTitle');
+        monthTitle.textContent = MONTHS_PL[currentMonth] + ' ' + currentYear;
+
+        grid.innerHTML = '';
+
+        // Nagłówki dni
+        DAYS_PL.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'day-header';
+            header.textContent = day;
+            grid.appendChild(header);
+        });
+
+        // Pierwszy dzień miesiąca
+        const firstDay = new Date(currentYear, currentMonth, 1);
+        let startDay = firstDay.getDay() - 1;
+        if (startDay < 0) startDay = 6;
+
+        // Liczba dni w miesiącu
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        // Puste komórki przed pierwszym dniem
+        for (let i = 0; i < startDay; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'day-cell empty';
+            grid.appendChild(empty);
+        }
+
+        // Dni miesiąca
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.dataset.date = dateStr;
+
+            // Numer dnia
+            const dayNum = document.createElement('div');
+            dayNum.className = 'day-number';
+            dayNum.textContent = day;
+            cell.appendChild(dayNum);
+
+            // Mini księżyc
+            const phaseInfo = getPhaseForDate(currentYear, currentMonth, day);
+            if (phaseInfo) {
+                const miniMoon = document.createElement('div');
+                miniMoon.className = 'day-mini-moon mini-moon-' + phaseInfo.cssClass.toLowerCase().replace(/ /g, '-');
+                cell.appendChild(miniMoon);
+
+                // Podświetlenie dla pełni/nowiu
+                if (phaseInfo.isKeyEvent) {
+                    cell.classList.add('has-event');
+                }
+            }
+
+            // Kliknięcie
+            cell.addEventListener('click', () => selectDay(dateStr, cell));
+
+            grid.appendChild(cell);
+        }
+
+        // Podświetlenie bieżącego dnia
+        const today = new Date();
+        if (today.getFullYear() === currentYear && today.getMonth() === currentMonth) {
+            const todayCell = document.querySelector(`.day-cell[data-date="${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}"]`);
+            if (todayCell) todayCell.classList.add('selected');
+        }
+    }
+
+    // === Pobieranie fazy dla danej daty ===
+    function getPhaseForDate(year, month, day) {
+        const date = new Date(year, month, day);
+        const moonAge = getMoonAge(date);
+        const cyclePos = moonAge / 29.53058867;
+
+        let cssClass = '';
+        let isKeyEvent = false;
+
+        if (cyclePos < 0.0625 || cyclePos >= 0.9375) {
+            cssClass = 'New Moon';
+            isKeyEvent = true;
+        } else if (cyclePos < 0.1875) {
+            cssClass = 'Waxing Crescent';
+        } else if (cyclePos < 0.3125) {
+            cssClass = 'First Quarter';
+            isKeyEvent = true;
+        } else if (cyclePos < 0.4375) {
+            cssClass = 'Waxing Gibbous';
+        } else if (cyclePos < 0.5625) {
+            cssClass = 'Full Moon';
+            isKeyEvent = true;
+        } else if (cyclePos < 0.6875) {
+            cssClass = 'Waning Gibbous';
+        } else if (cyclePos < 0.8125) {
+            cssClass = 'Last Quarter';
+            isKeyEvent = true;
+        } else {
+            cssClass = 'Waning Crescent';
+        }
+
+        return { cssClass, isKeyEvent };
+    }
+
+    // === Obliczanie wieku księżyca ===
+    function getMoonAge(date) {
+        const epochMs = 947184840000;
+        const targetMs = date.getTime();
+        const daysSinceEpoch = (targetMs - epochMs) / (24 * 60 * 60 * 1000);
+        let moonAge = daysSinceEpoch % 29.53058867;
+        if (moonAge < 0) moonAge += 29.53058867;
+        return moonAge;
+    }
+
+    // === Wybór dnia ===
+    async function selectDay(dateStr, cell) {
+        // Usuń poprzedni wybór
+        document.querySelectorAll('.day-cell.selected').forEach(c => c.classList.remove('selected'));
+        cell.classList.add('selected');
+
+        // Pobierz dane z API
+        const data = await fetchDayInfo(dateStr);
+        if (!data) return;
+
+        const { phase, moonAgeDays, cycleProgress } = data;
+
+        // Aktualizuj panel szczegółów
+        document.getElementById('detailPhaseName').textContent = phase.phaseName;
+        document.getElementById('detailDateText').textContent = new Date(dateStr).toLocaleDateString('pl-PL', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        document.getElementById('detailIllumination').textContent = Math.round(phase.illumination * 100) + '%';
+        document.getElementById('detailMoonAge').textContent = moonAgeDays.toFixed(1) + ' dni';
+        document.getElementById('detailDistance').textContent = (phase.distanceKm / 1000).toFixed(1) + ' tys. km';
+        document.getElementById('detailCycleProgress').textContent = Math.round(cycleProgress * 100) + '%';
+
+        // Aktualizuj wizualizację księżyca
+        updateDetailMoon(phase.illumination, cycleProgress);
+    }
+
+    // === Aktualizacja wizualizacji księżyca w panelu szczegółów ===
+    function updateDetailMoon(illumination, cyclePosition) {
+        const clipRect = document.getElementById('detailClipRect');
+
+        let left, width;
+        if (cyclePosition <= 0.5) {
+            width = Math.abs(cyclePosition * 2) * 80;
+            left = 100 - width;
+        } else {
+            width = Math.abs((1 - cyclePosition) * 2) * 80;
+            left = 100;
+        }
+
+        clipRect.setAttribute('x', left);
+        clipRect.setAttribute('width', width);
+    }
+
+    // === Nawigacja ===
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+        document.getElementById('yearDisplay').textContent = currentYear;
+        renderCalendar();
+    }
+
+    function changeYear(delta) {
+        currentYear += delta;
+        document.getElementById('yearDisplay').textContent = currentYear;
+        loadPhases(currentYear);
+        renderCalendar();
+    }
+
+    // === Inicjalizacja ===
+    window.onload = async () => {
+        await loadPhases(YEAR);
+        renderCalendar();
+
+        // Wybierz dzisiejszy dzień
+        const today = new Date();
+        if (today.getFullYear() === YEAR) {
+            currentMonth = today.getMonth();
+            renderCalendar();
+            const todayCell = document.querySelector(`.day-cell[data-date="${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}"]`);
+            if (todayCell) selectDay(todayCell.dataset.date, todayCell);
+        }
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
